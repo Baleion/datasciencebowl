@@ -63,17 +63,17 @@ def convolutional_neural_network(x):
 
 cwd = str(os.getcwd()) 
 much_data = np.load(cwd + "\\" + "muchdata--150--150--20--.npy")
-train_data = much_data[:-2]
-validation_data = much_data[-2:]
+train_data = much_data[:-1]
+validation_data = much_data[-1:]
 
 def train_neural_network(x):
     prediction = convolutional_neural_network(x)
-    cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(prediction,y) )
+    cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=y)) 
     optimizer = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(cost)
     
-    hm_epochs = 10
+    hm_epochs = 3
     with tf.Session() as sess:
-        sess.run(tf.initialize_all_variables())
+        sess.run(tf.global_variables_initializer())
         
         successful_runs = 0
         total_runs = 0
@@ -105,5 +105,5 @@ def train_neural_network(x):
         print('fitment percent:',successful_runs/total_runs)
 
 # Run this locally:
-# train_neural_network(x)
+train_neural_network(x)
     

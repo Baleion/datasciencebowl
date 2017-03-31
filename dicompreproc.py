@@ -18,10 +18,12 @@ import math
 IMG_PX_SIZE = 150
 HM_SLICES = 20
 
-def chunks(alist, n):
-    '''Yield successive n-sized chunks from a list.'''
-    for i in range(0,len(alist), n):
-        yield alist[i:i +n]
+def chunks( l,n ):
+    count=0
+    for i in range(0, len(l), n):
+        if(count < HM_SLICES):
+            yield l[i:i + n]
+            count=count+1
 
 def mean(l):
     return sum(l)/len(l)
@@ -38,12 +40,12 @@ def process_data(patient,labels_df, img_px_size = 50, hm_slices = 20, visualize 
     #Resizing the 3rd dimension of the image, the number of slices
         new_slices = []
         slices = [cv2.resize(np.array(each_slice.pixel_array),(IMG_PX_SIZE, IMG_PX_SIZE)) for each_slice in slices]
-        chunk_sizes = math.ceil(len(slices)/HM_SLICES)
+        chunk_sizes = math.floor(len(slices)/HM_SLICES)
     
         for slice_chunk in chunks(slices, chunk_sizes):
               slice_chunk = list(map(mean, zip(*slice_chunk)))
               new_slices.append(slice_chunk)
-        
+ 
         if len(new_slices) == HM_SLICES-1:
             new_slices.append(new_slices[-1])
 
@@ -60,7 +62,7 @@ def process_data(patient,labels_df, img_px_size = 50, hm_slices = 20, visualize 
             new_val = list(map(mean, zip(*[new_slices[HM_SLICES-1],new_slices[HM_SLICES],])))
             del new_slices[HM_SLICES]
             new_slices[HM_SLICES-1] = new_val
-                      
+                    
         print(len(slices), len(new_slices))
         
         if visualize:  
