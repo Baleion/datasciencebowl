@@ -76,7 +76,7 @@ build_dataframe<- function(patient_dir_list, path_of_csv, size_x = 64, size_y = 
     View(full_data)
     stop("Stop initiated on first iteration")}
   
-  pt_left <- ntimes-1
+  pt_left <- n_times-1
   sprintf("Iterations to go %d",pt_left)
   
   }
