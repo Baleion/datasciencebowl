@@ -3,8 +3,7 @@ library(imager)
 library(magrittr)
 library(oro.dicom)
 library(oro.nifti)
-
-
+library(readr)
 
 
 patient_dir_list <- dir(getwd())
@@ -82,7 +81,13 @@ build_dataframe<- function(patient_dir_list, path_of_csv, size_x = 64, size_y = 
   }
   #Write the df to csv
   colnames(full_data)<-'PatientID'
-  write_csv(full_data,path = path_of_csv)
+  
+  tryCatch(
+  write_csv(full_data,path = path_of_csv),
+  error = function(c){
+    save(full_data)
+  }
+  )
   }
 
 build_dataframe(patient_dir_list, path = 'E:/DSB/sample_patients1.csv')
