@@ -34,6 +34,7 @@ build_dataframe<- function(patient_dir_list, path_of_csv, size_x = 64, size_y = 
   pt_done <- 0
   print(paste('The number of patients is: ', n_times))
   
+  
   for(patient in patient_dir_list){
   
   p <- readDICOM(patient)
@@ -41,7 +42,12 @@ build_dataframe<- function(patient_dir_list, path_of_csv, size_x = 64, size_y = 
   rescale_int <- extractHeader(p$hdr[1],'RescaleIntercept', numeric = TRUE)
   rescale_slope <- extractHeader(p$hdr[1],'RescaleSlope', numeric = TRUE)
   pt_id <- extractHeader(p$hdr[1],'PatientID', numeric = FALSE)
+  slices_pt <- extractHeader(p$hdr[1],'GroupLength', numeric = TRUE)
   
+  if(slices_pt < num_slices){
+    warning("Slices mismatched")
+    next
+  }
 
   #Combine slices into a 3d array
   slice2three <- create3D(p, pixelData = TRUE) 
@@ -54,13 +60,18 @@ build_dataframe<- function(patient_dir_list, path_of_csv, size_x = 64, size_y = 
   }
   
   #Convert pixel intensity to hu
-  to_Hu <- transform_image(cmg, rescale_int = rescale_int, rescale_slope = rescale_slope)  
+  to_Hu <- transform_image(cmg, rescale_int = rescale_int, rescale_slope = rescale_slope)
+  
   #Cleaning
   rm(slice2three)
   rm(cmg)
   rm(p)
   
-  resized <- imager::resize(to_Hu, size_x = size_x, size_y = size_y, size_z = num_slices)
+  resized <- tryCatch(imager::resize(to_Hu, size_x = size_x, size_y = size_y, size_z = num_slices),
+                      error = function(e){
+                        print(conditionMessage(e))
+                        resized <- array(dim = c(size_x, size_y,size_y))
+                      })
   to_array <- drop(as.array(resized))
   transformed <- as.vector(t(as.matrix(to_array)))
   transformed <- list(patientID = c(pt_id), transformed)
@@ -81,9 +92,10 @@ build_dataframe<- function(patient_dir_list, path_of_csv, size_x = 64, size_y = 
   
   pt_done <- pt_done + 1
   left <- n_times - pt_done
-  print(paste("Iterations to go: ",left))
+  print(paste("Iterations to go:",left, "Patient Id:",pt_id))
   
   }
+  
   #Write the df to csv
   colnames(full_data)<-'PatientID'
   
@@ -96,4 +108,4 @@ build_dataframe<- function(patient_dir_list, path_of_csv, size_x = 64, size_y = 
   return(full_data)
   }
 
-df<- build_dataframe(patient_dir_list, path = 'E:/DSB/sample_patients2.csv')
+df<- build_dataframe(patient_dir_list, path = 'E:/DSB/stage1_patients.csv', size_x = 32, size_y = 32, num_slices = 50)
