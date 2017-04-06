@@ -7,7 +7,7 @@ library(readr)
 
 
 patient_dir_list <- dir(getwd())
-sprintf("Number of patients: %d",length(patients))
+
 
 
 
@@ -31,6 +31,8 @@ build_dataframe<- function(patient_dir_list, path_of_csv, size_x = 64, size_y = 
 
   #Get an idea of the progress
   n_times <- length(patient_dir_list)
+  pt_done <- 0
+  print(paste('The number of patients is: ', n_times))
   
   for(patient in patient_dir_list){
   
@@ -75,8 +77,11 @@ build_dataframe<- function(patient_dir_list, path_of_csv, size_x = 64, size_y = 
     View(full_data)
     stop("Stop initiated on first iteration")}
   
-  pt_left <- n_times-1
-  sprintf("Iterations to go %d",pt_left)
+  #Progress indicator
+  
+  pt_done <- pt_done + 1
+  left <- n_times - pt_done
+  print(paste("Iterations to go: ",left))
   
   }
   #Write the df to csv
@@ -90,4 +95,4 @@ build_dataframe<- function(patient_dir_list, path_of_csv, size_x = 64, size_y = 
   )
   }
 
-build_dataframe(patient_dir_list, path = 'E:/DSB/sample_patients1.csv')
+build_dataframe(patient_dir_list, path = 'E:/DSB/sample_patients2.csv')
