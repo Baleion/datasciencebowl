@@ -93,6 +93,7 @@ build_dataframe<- function(patient_dir_list, path_of_csv, size_x = 64, size_y = 
     save(full_data)
   }
   )
+  return(full_data)
   }
 
-build_dataframe(patient_dir_list, path = 'E:/DSB/sample_patients2.csv')
+df<- build_dataframe(patient_dir_list, path = 'E:/DSB/sample_patients2.csv')
