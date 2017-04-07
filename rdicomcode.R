@@ -6,18 +6,21 @@
   library(oro.dicom)
   library(oro.nifti)
   library(readr)
+  library(BiocGenerics)
+  library(EBImage)
   
   
   patient_dir_list <- dir(getwd())
   
-  stage1_labels <- read.csv("E:/DSB/stage1_labels.csv/stage1_labels") #Change path to match
+  stage1_labels <- read.csv("E:/DSB/stage1_labels.csv/stage1_labels.csv") #Change path to match
   
   
   #Call each patient one at a time and convert their corresponding images, plot, and remove artifacts
-  build_dataframe<- function(patient_dir_list, path_of_csv, label_df,size_x = 64, size_y = 64, num_slices = 100,plots = FALSE, stop_on_one = FALSE){
+  build_dataframe<- function(patient_dir_list, path_of_csv, label_df,size_x = 64, size_y = 64, num_slices = 100,plots = FALSE, n_iterations){
     
-    #Declare empty dataframe
-    full_data <- data.frame()
+    #Declare empty vectors for storying the output
+    pixel_array <- array(dim = c(length(patient_dir_list+1),(size_x*size_y*num_slices)))
+    patient_ids <- array(dim = c(length(patient_dir_list),1))
     
     ###Utility subfuction for transformation of image
     
@@ -27,6 +30,7 @@
         image = as.integer(rescale_slope * image)
       }
       image <- image + rescale_int
+      #image <- EBImage::normalize(image, separate=TRUE, ft=c(0,1), inputRange = c(-1000,400))#Not working yet
       
       return(image)
     }
@@ -36,7 +40,9 @@
     n_times <- length(patient_dir_list)
     pt_done <- 0
     print(paste('The number of patients is: ', n_times))
+
     
+    ##################BEGIN LOOP###############    
     
     for(patient in patient_dir_list){
     
@@ -77,39 +83,49 @@
                         })
     to_array <- drop(as.array(resized))
     transformed <- as.vector(t(as.matrix(to_array)))
-    transformed <- list(PatientID = c(pt_id), transformed)
+    
+    #Add to the vectors
+    pixel_array[pt_done+1,] <- transformed
+    patient_ids[pt_done+1,] <- pt_id
     
     rm(to_array)
     rm(resized)
     rm(to_Hu)
+  
 
-    #Here is where the magic happens, build a dataframe!
-    full_data <- rbind(full_data, unlist(transformed))
-    rm(transformed)
-    
-    #Be able to exit the loop to make sure everything is going well
-    if(stop_on_one){
-      colnames(full_data)<-c('PatientID')
-      View(full_data)
-      full_data <- merge(full_data,label_df, by.x = 'PatientID', by.y = 'PatientID', all.x = TRUE)
-      return(full_data)
-      stop("Stop initiated on first iteration")}
-    
     #Progress indicator
-    
     pt_done <- pt_done + 1
     left <- n_times - pt_done
     print(paste("Iterations to go:",left, "Patient Id:",pt_id))
+    
+    #Be able to exit the loop to make sure everything is going well
+    if(n_iterations == pt_done){
+      full_data <- cbind.data.frame(patient_ids,pixel_array)
+      colnames(label_df) <-c('PatientID','cancer')
+      colnames(full_data)<-colnames<-c('PatientID',paste('Pixel',1:(size_x*size_y*num_slices)))
+      full_data <- merge(full_data,label_df, by.x = 'PatientID', by.y = 'PatientID', all.x = TRUE)
+      View(full_data)
+      return(pixel_array,patient_ids,full_data)
+      stop("Stop initiated on first iteration")}
+    
+    
     }
+    
+    
+                                         ############END OF LOOP##############
     
     #Merge dataframes
     tryCatch(
-    colnames(full_data)<-c('PatientID'),
+    full_data <- cbind.data.frame(patient_ids,pixel_array),
+    colnames(label_df) <-c('PatientID','cancer'),
+    colnames(full_data)<-colnames<-c('PatientID',paste('Pixel',1:(size_x*size_y*num_slices))),
     full_data <- merge(full_data,label_df, by.x = 'PatientID', by.y = 'PatientID', all.x = TRUE),
     error = function(c){
+    View(full_data)  
     print(conditionMessage(c))
-    return(full_data)
-      })                       ############END OF LOOP##############
+    return(pixel_array,patient_ids,full_data)
+    
+      })                       
     
     #Write to csv
     tryCatch(
@@ -122,4 +138,7 @@
     return(full_data)
     }
   
-  df<- build_dataframe(patient_dir_list, path_of_csv ='E:/DSB/stage1_patients.csv', size_x = 32, size_y = 32, num_slices = 30,stop_on_one = FALSE, label_df = stage1_labels)
+  
+#CHECK THE FUNCTION CALL TO VERIFY IT iS CORRECT  
+  df<-list()
+  df<- build_dataframe(patient_dir_list, path_of_csv ='E:/DSB/stage1_patients.csv', size_x = 32, size_y = 32, num_slices = 30, label_df = stage1_labels,n_iterations = 5)
