@@ -9,17 +9,16 @@
   library(BiocGenerics)
   library(EBImage)
   
-  
   patient_dir_list <- dir(getwd())
   
   stage1_labels <- read.csv("E:/DSB/stage1_labels.csv/stage1_labels.csv") #Change path to match
   
   
   #Call each patient one at a time and convert their corresponding images, plot, and remove artifacts
-  build_dataframe<- function(patient_dir_list, path_of_csv, label_df,size_x = 64, size_y = 64, num_slices = 100,plots = FALSE, n_iterations){
+  build_dataframe<- function(patient_dir_list, path_of_csv, label_df,size_x = 64, size_y = 64, num_slices = 100,plots = FALSE, n_iterations = length(patient_dir_list)){
     
     #Declare empty vectors for storying the output
-    pixel_array <- array(dim = c(length(patient_dir_list+1),(size_x*size_y*num_slices)))
+    pixel_array <- array(dim = c(length(patient_dir_list),(size_x*size_y*num_slices)))
     patient_ids <- array(dim = c(length(patient_dir_list),1))
     
     ###Utility subfuction for transformation of image
@@ -30,7 +29,6 @@
         image = as.integer(rescale_slope * image)
       }
       image <- image + rescale_int
-      #image <- EBImage::normalize(image, separate=TRUE, ft=c(0,1), inputRange = c(-1000,400))#Not working yet
       
       return(image)
     }
@@ -76,21 +74,25 @@
     rm(cmg)
     rm(p)
     
+    #Resize the original 3d image into a much smaller format for covnet
     resized <- tryCatch(imager::resize(to_Hu, size_x = size_x, size_y = size_y, size_z = num_slices),
                         error = function(e){
                           print(conditionMessage(e))
                           resized <- array(dim = c(size_x, size_y,size_y))
                         })
+    #Flatten the pixel array into a single vector
     to_array <- drop(as.array(resized))
     transformed <- as.vector(t(as.matrix(to_array)))
     
-    #Add to the vectors
+    #Append the flattened vector to the pixel array
     pixel_array[pt_done+1,] <- transformed
     patient_ids[pt_done+1,] <- pt_id
     
+    #Cleaning
     rm(to_array)
     rm(resized)
     rm(to_Hu)
+    rm(transformed)
   
 
     #Progress indicator
@@ -105,7 +107,7 @@
       colnames(full_data)<-colnames<-c('PatientID',paste('Pixel',1:(size_x*size_y*num_slices)))
       full_data <- merge(full_data,label_df, by.x = 'PatientID', by.y = 'PatientID', all.x = TRUE)
       View(full_data)
-      return(pixel_array,patient_ids,full_data)
+      return(full_data)
       stop("Stop initiated on first iteration")}
     
     
@@ -120,25 +122,21 @@
     colnames(label_df) <-c('PatientID','cancer'),
     colnames(full_data)<-colnames<-c('PatientID',paste('Pixel',1:(size_x*size_y*num_slices))),
     full_data <- merge(full_data,label_df, by.x = 'PatientID', by.y = 'PatientID', all.x = TRUE),
+    write_csv(full_data,path = path_of_csv),
+    save(full_data, file = 'full_data.rda'),
+    return(full_data),
+    
     error = function(c){
+    
     View(full_data)  
     print(conditionMessage(c))
-    return(pixel_array,patient_ids,full_data)
+    return(full_data)
     
       })                       
     
-    #Write to csv
-    tryCatch(
-      
-    write_csv(full_data,path = path_of_csv),
-    error = function(c){
-    return(full_data)
-    }
-    )
-    return(full_data)
     }
   
   
 #CHECK THE FUNCTION CALL TO VERIFY IT iS CORRECT  
   df<-list()
-  df<- build_dataframe(patient_dir_list, path_of_csv ='E:/DSB/stage1_patients.csv', size_x = 32, size_y = 32, num_slices = 30, label_df = stage1_labels,n_iterations = 5)
+  df<- build_dataframe(patient_dir_list, path_of_csv ='E:/DSB/sampe_patients_test1.csv', size_x = 50, size_y = 50, num_slices = 40, label_df = stage1_labels, n_iterations = 1)
