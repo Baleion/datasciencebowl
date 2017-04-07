@@ -78,7 +78,7 @@
     resized <- tryCatch(imager::resize(to_Hu, size_x = size_x, size_y = size_y, size_z = num_slices),
                         error = function(e){
                           print(conditionMessage(e))
-                          resized <- array(dim = c(size_x, size_y,size_y))
+                          resized <- array(NA,dim = c(size_x*size_y*num_slices))
                         })
     #Flatten the pixel array into a single vector
     to_array <- drop(as.array(resized))
@@ -106,8 +106,12 @@
       colnames(label_df) <-c('PatientID','cancer')
       colnames(full_data)<-colnames<-c('PatientID',paste('Pixel',1:(size_x*size_y*num_slices)))
       full_data <- merge(full_data,label_df, by.x = 'PatientID', by.y = 'PatientID', all.x = TRUE)
+      
+      #View and save the current data.
       View(full_data)
+      save(full_data, file = 'full_data.rda')
       return(full_data)
+      
       stop("Stop initiated on first iteration")}
     
     
@@ -130,7 +134,9 @@
     
     View(full_data)  
     print(conditionMessage(c))
-    return(full_data)
+    save(full_data, file = 'full_data.rda')
+    
+    return(pt_id)
     
       })                       
     
@@ -139,4 +145,6 @@
   
 #CHECK THE FUNCTION CALL TO VERIFY IT iS CORRECT  
   df<-list()
-  df<- build_dataframe(patient_dir_list, path_of_csv ='E:/DSB/sampe_patients_test1.csv', size_x = 50, size_y = 50, num_slices = 40, label_df = stage1_labels, n_iterations = 1)
+  df<- build_dataframe(patient_dir_list, path_of_csv ='E:/DSB/sampe_patients_test1.csv', size_x = 32, size_y = 32, num_slices = 40, label_df = stage1_labels)
+
+  
