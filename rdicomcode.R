@@ -14,7 +14,7 @@
   
   
   #Call each patient one at a time and convert their corresponding images, plot, and remove artifacts
-  build_dataframe<- function(patient_dir_list, path_of_csv, size_x = 64, size_y = 64, num_slices = 100, plots = FALSE, stop_on_one = FALSE, label_df){
+  build_dataframe<- function(patient_dir_list, path_of_csv, label_df,size_x = 64, size_y = 64, num_slices = 100,...){
     
     #Declare empty dataframe
     full_data <- data.frame()
@@ -33,7 +33,7 @@
   
     
     #Get an idea of the progress
-    n_times <- length(tail(patient_dir_list,500))
+    n_times <- length(patient_dir_list)
     pt_done <- 0
     print(paste('The number of patients is: ', n_times))
     
