@@ -14,7 +14,7 @@
   
   
   #Call each patient one at a time and convert their corresponding images, plot, and remove artifacts
-  build_dataframe<- function(patient_dir_list, path_of_csv, label_df,size_x = 64, size_y = 64, num_slices = 100,...){
+  build_dataframe<- function(patient_dir_list, path_of_csv, label_df,size_x = 64, size_y = 64, num_slices = 100,plots = FALSE, stop_on_one = FALSE){
     
     #Declare empty dataframe
     full_data <- data.frame()
@@ -109,7 +109,7 @@
     error = function(c){
     print(conditionMessage(c))
     return(full_data)
-      })
+      })                       ############END OF LOOP##############
     
     #Write to csv
     tryCatch(
