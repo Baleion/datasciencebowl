@@ -28,7 +28,7 @@
     transform_image <- function(image,rescale_int,rescale_slope){
       image <- replace(image,image == -2000,0)
       if (rescale_slope != 1) {
-        image = as.integer(rescale_slope * image)
+        image = rescale_slope * image
       }
       image <- image + rescale_int
       image <- EBImage::normalize(image, separate=TRUE, ft=c(0,1), inputRange = c(-1000,400))#Not working yet
