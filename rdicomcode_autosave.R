@@ -14,14 +14,14 @@
   
   
   #Call each patient one at a time and convert their corresponding images, plot, and remove artifacts
-  build_dataframe<- function(patient_dir_list, path_of_csv, label_df,size_x = 64, size_y = 64, num_slices = 100,plots = FALSE, n_iterations = length(patient_dir_list)){
+  build_dataframe<- function(patient_dir_list, path_of_csv, label_df,size_x = 64, size_y = 64, num_slices = 100,plots = FALSE, n_iterations = NULL){
     
     #Declare some variables
     pixel_array <- array(dim = c(length(patient_dir_list),(size_x*size_y*num_slices)))
     patient_ids <- array(dim = c(length(patient_dir_list),1))
     SAVE_POINT <- 250
-    index_save <- 0
-    save_list <- list()
+    chunk <- 0
+
     
     ###Utility subfuction for transformation of image
     
@@ -31,7 +31,7 @@
         image = as.integer(rescale_slope * image)
       }
       image <- image + rescale_int
-      
+      image <- EBImage::normalize(image, separate=TRUE, ft=c(0,1), inputRange = c(-1000,400))#Not working yet
       return(image)
     }
     
@@ -72,7 +72,8 @@
   
     #Combine slices into a 3d array
     slice2three <- create3D(p, pixelData = TRUE) 
-    cmg <- as.cimg(slice2three)
+    cmg <- imager::as.cimg(slice2three)
+    rm(p)
     
     if(plots)
       {
@@ -80,31 +81,30 @@
     hist(cmg)
     }
     
-    #Convert pixel intensity to hu
-    to_Hu <- transform_image(cmg, rescale_int = rescale_int, rescale_slope = rescale_slope)
-    
-    #Cleaning
-    rm(slice2three)
-    rm(cmg)
-    rm(p)
-    
     #Resize the original 3d image into a much smaller format for covnet
-    resized <- tryCatch(imager::resize(to_Hu, size_x = size_x, size_y = size_y, size_z = num_slices),
+    resized <- tryCatch(imager::resize(cmg, size_x = size_x, size_y = size_y, size_z = num_slices),
                         error = function(e){
                           print(conditionMessage(e))
                           resized <- array(NA,dim = c(size_x*size_y*num_slices))
                         })
+    rm(cmg)
+    
     #Flatten the pixel array into a single vector
     to_array <- drop(as.array(resized))
-    transformed <- as.vector(t(as.matrix(to_array)))
+    #Convert pixel intensity to hu
+    to_Hu <- transform_image(to_array, rescale_int = rescale_int, rescale_slope = rescale_slope)
+    
+    #Cleaning
+    rm(slice2three)
+    rm(to_array)
+    
+    transformed <- as.vector(t(as.matrix(to_Hu)))
     
     #Append the flattened vector to the pixel array
     pixel_array[pt_done+1,] <- transformed
     patient_ids[pt_done+1,] <- pt_id
     
     #Cleaning
-    rm(to_array)
-    rm(resized)
     rm(to_Hu)
     rm(transformed)
   
@@ -122,8 +122,9 @@
       #Save the current data and retain the file name for easy look up
       file_name <- paste('sp_',pt_id,".rda", sep = "")
       save(full_data, file = file_name)
-      save_list[[index_save]] <- file_name
+
       print('Saved data successfully')
+      SAVE_POINT <-SAVE_POINT+250
       
       rm(file_name)
       rm(full_data)
@@ -131,15 +132,19 @@
     
     
     #Be able to exit the loop to make sure everything is going well
-    if(n_iterations == pt_done){
+    
+    if(!is.null(n_iterations)){
+      
+      if(n_iterations == pt_done){
       full_data <- combine(patient_ids,pixel_array,label_df)
       #View and save the current data.
       View(full_data)
-      file_name = paste('chunk_',pt_id,".rda", sep = "")
+      chunk <- chunk + 1
+      file_name = paste('chunk_',chunk,".rda", sep = "")
       save(full_data, file = file_name)
       return(full_data)
-      
-      stop("Reached n_iterations")}
+      }
+      }
     
     }
     
@@ -148,27 +153,18 @@
     
     
     #Write the csv and save the data
-    tryCatch(
-    full_data <- combine(patient_ids,pixel_array,label_df),
-    write_csv(full_data,path = path_of_csv),
-    save(full_data, file = 'full_data.rda'),
-    return(full_data),
-    
-    error = function(c){
-    
-    View(full_data)  
-    print(conditionMessage(c))
+  
+    full_data <- combine(patient_ids,pixel_array,label_df)
     save(full_data, file = 'full_data.rda')
-    
-    return(pt_id)
-    
-      })                       
+    write_csv(full_data,path = path_of_csv)
+    return(full_data)
+                        
     
     }
   
   
 #CHECK THE FUNCTION CALL TO VERIFY IT iS CORRECT  
-  df<-list()
-  df<- build_dataframe(patient_dir_list[301:length(patient_dir_list)], path_of_csv ='E:/DSB/stage1_patients_complete.csv', size_x = 32, size_y = 32, num_slices = 40, label_df = stage1_labels)
+
+  df<- build_dataframe(patient_dir_list, path_of_csv ='E:/DSB/stage1_patients_complete.csv', label_df = stage1_labels, n_iterations = 300)
 
   
