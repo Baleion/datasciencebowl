@@ -2,9 +2,7 @@
   ###datasciencebowl preprocr
   ###libraries
   library(imager)
-  library(magrittr)
   library(oro.dicom)
-  library(oro.nifti)
   library(readr)
 
   
@@ -14,13 +12,16 @@
   
   
   #Call each patient one at a time and convert their corresponding images, plot, and remove artifacts
-  build_dataframe<- function(patient_dir_list, path_of_csv, label_df,size_x = 64, size_y = 64, num_slices = 100,plots = FALSE, n_iterations = NULL){
+  build_dataframe<- function(patient_dir_list, path_of_csv, label_df,size_x = 64, size_y = 64, num_slices = 50,plots = FALSE, n_iterations = NULL){
     
     #Declare some variables
-    pixel_array <- array(dim = c(length(patient_dir_list),(size_x*size_y*num_slices)))
-    patient_ids <- array(dim = c(length(patient_dir_list),1))
-    SAVE_POINT <- 250
+    SAVE_POINT <- 100 #This variable will increment
+   
+    pixel_array <- array(dim = c(length(patient_dir_list[1:SAVE_POINT]),(size_x*size_y*num_slices)))
+    patient_ids <- array(dim = c(length(patient_dir_list[1:SAVE_POINT]),1))
     chunk <- 0
+    index_save <- 0
+    end_list <- which(patient_dir_list == tail(patient_dir_list, n = 1))
 
     
     ###Utility subfuction for transformation of image
@@ -58,6 +59,7 @@
     
     for(patient in patient_dir_list){
     
+    SAVE_SIZE <- 100 #This variable will not increment.
     p <- readDICOM(patient)
     #Get header values for ID, intercept, and slope
     rescale_int <- extractHeader(p$hdr[1],'RescaleIntercept', numeric = TRUE)
@@ -71,8 +73,9 @@
     }
   
     #Combine slices into a 3d array
-    slice2three <- create3D(p, pixelData = TRUE) 
+    slice2three <- create3D(p) 
     cmg <- imager::as.cimg(slice2three)
+    rm(slice2three)
     rm(p)
     
     if(plots)
@@ -95,7 +98,6 @@
     to_Hu <- transform_image(to_array, rescale_int = rescale_int, rescale_slope = rescale_slope)
     
     #Cleaning
-    rm(slice2three)
     rm(to_array)
     
     transformed <- as.vector(t(as.matrix(to_Hu)))
@@ -120,14 +122,25 @@
       full_data <- combine(patient_ids,pixel_array,label_df)
       index_save <- index_save + 1
       #Save the current data and retain the file name for easy look up
-      file_name <- paste('sp_',pt_id,".rda", sep = "")
+      file_name <- paste('save_',index_save,".rda", sep = "")
       save(full_data, file = file_name)
 
       print('Saved data successfully')
-      SAVE_POINT <-SAVE_POINT+250
       
+      SAVE_POINT <-SAVE_POINT+SAVE_POINT
+      
+      rm(pixel_array)
       rm(file_name)
       rm(full_data)
+      
+      if(SAVE_SIZE > length(pt_done:end_list)){
+        pixel_array <- array(dim = c(length(patient_dir_list[pt_done:end_of_list]),(size_x*size_y*num_slices)))
+        patient_ids <- array(dim = c(length(patient_dir_list[pt_done:end_of_list]),1))
+      }
+      else{
+      pixel_array <- array(dim = c(length(patient_dir_list[pt_done:SAVE_POINT]),(size_x*size_y*num_slices)))
+      patient_ids <- array(dim = c(length(patient_dir_list[pt_done:SAVE_POINT]),1))
+      }
     }
     
     
@@ -165,6 +178,6 @@
   
 #CHECK THE FUNCTION CALL TO VERIFY IT iS CORRECT  
 
-  df<- build_dataframe(patient_dir_list, path_of_csv ='E:/DSB/stage1_patients_complete.csv', label_df = stage1_labels, n_iterations = 300)
+  df<- build_dataframe(patient_dir_list[400:1595], path_of_csv ='E:/DSB/stage1_patients_complete.csv', label_df = stage1_labels)
 
   

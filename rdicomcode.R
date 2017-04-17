@@ -145,6 +145,6 @@
   
 #CHECK THE FUNCTION CALL TO VERIFY IT iS CORRECT  
   df<-list()
-  df<- build_dataframe(patient_dir_list, path_of_csv ='E:/DSB/sampe_patients_test1.csv', size_x = 32, size_y = 32, num_slices = 40, label_df = stage1_labels)
+  df<- build_dataframe(patient_dir_list, path_of_csv ='E:/DSB/sampe_patients_test1.csv', size_x = 32, size_y = 32, num_slices = 40, label_df = stage1_labels,n_iterations=300)
 
   

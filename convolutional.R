@@ -3,14 +3,20 @@ library(mxnet)
 # Loading data and set up
 #-------------------------------------------------------------------------------
 
-# Load train and test datasets
-train <- read.csv("")
-test <- read.csv("")
 
 # Set up train and test datasets
+
+train <- as.data.frame(train)
+train_id <- train$PatientID
+
+test_id <- test$PatientID
+test <- test[,-1]
+
 train <- data.matrix(train)
-train_x <- t(train[, -1])
-train_y <- train[, 1]
+test <- data.matrix(test)
+
+train_x <- (train[, -1376])
+train_y <- train[, 1376]
 train_array <- train_x
 dim(train_array) <- c(28, 28, 1, ncol(train_x))
 
