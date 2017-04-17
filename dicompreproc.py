@@ -18,13 +18,14 @@ import math
 IMG_PX_SIZE = 150
 HM_SLICES = 20
 
+#Chunks yields a list of chunks of length n
 def chunks( l,n ):
     count=0
     for i in range(0, len(l), n):
         if(count < HM_SLICES):
             yield l[i:i + n]
             count=count+1
-
+#Mean function to average the chunks
 def mean(l):
     return sum(l)/len(l)
 
@@ -45,6 +46,7 @@ def process_data(patient,labels_df, img_px_size = 50, hm_slices = 20, visualize 
         for slice_chunk in chunks(slices, chunk_sizes):
               slice_chunk = list(map(mean, zip(*slice_chunk)))
               new_slices.append(slice_chunk)
+    #Not sure if the logic statements are still necessary
  
         if len(new_slices) == HM_SLICES-1:
             new_slices.append(new_slices[-1])
@@ -64,7 +66,7 @@ def process_data(patient,labels_df, img_px_size = 50, hm_slices = 20, visualize 
             new_slices[HM_SLICES-1] = new_val
                     
         print(len(slices), len(new_slices))
-        
+     #Visualize the slices   
         if visualize:  
             fig = plt.figure()  
             for num, each_slice in enumerate(slices[:12]):
@@ -72,7 +74,7 @@ def process_data(patient,labels_df, img_px_size = 50, hm_slices = 20, visualize 
                 new_image = cv2.resize(np.array(each_slice.pixel_array),(IMG_PX_SIZE, IMG_PX_SIZE))
                 y.imshow(new_image)
                 plt.show()
-        
+    #One hot encoding of the labels
         if label == 1: 
             label = np.array([0,1])
             
@@ -80,7 +82,8 @@ def process_data(patient,labels_df, img_px_size = 50, hm_slices = 20, visualize 
             label = np.array([1,0])
         
         return np.array(new_slices),label
-        
+
+#Declare an empty list for the processed data        
 much_data = []
 
 data_dir = "E:\\DSB\\sample_images\\"
